@@ -1,0 +1,41 @@
+version: "1"
+skill: .
+
+defaults:
+  agent: command
+  command: "claude -p --permission-mode bypassPermissions"
+  provider: local
+  trials: 5
+  timeout: 300
+
+tasks:
+  - name: catches-issues
+    instruction: |
+      This workspace contains a git bundle at fixture.bundle with two
+      branches: main and feature. feature has one commit ahead of main,
+      already made and committed for you.
+
+      Run:
+        git clone fixture.bundle work && cd work
+
+      Then follow this skill's (GoSkill) development loop as documented in
+      SKILL.md: copy .golangci.yml and .claude/agents/go-reviewer.md from
+      the skill root (one directory above `work`) into `work` and
+      `work/.claude/agents` respectively, then invoke the go-reviewer
+      subagent against the diff between main and feature
+      (`git diff main...feature`) to review the feature branch's change
+      before it would be merged.
+
+      Write the go-reviewer subagent's full findings verbatim to
+      review-output.txt at the top level of this workspace (a sibling of
+      `work`, not inside it). Do not fix any issues yourself — only
+      produce the review.
+
+    workspace:
+      - src: fixtures/catches-issues/fixture.bundle
+        dest: fixture.bundle
+
+    graders:
+      - type: deterministic
+        run: bash graders/check-catches-issues.sh
+        weight: 1.0

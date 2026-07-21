@@ -109,3 +109,32 @@ default branch. For each change:
 
 Review always runs against a real diff on a branch, never against
 work-in-progress on the default branch directly.
+
+## Testing the skill itself
+
+This skill is tested with [skillgrade](https://github.com/mgechev/skillgrade)
+(`npm i -g skillgrade`), which checks that an agent given this SKILL.md can
+actually discover and correctly follow the development loop above — not
+just that the loop is documented correctly. `eval.yaml` defines one task,
+`catches-issues`, that materializes a fixture repo
+(`fixtures/catches-issues/fixture.bundle`, a two-branch git bundle with a
+feature branch adding an unchecked-error and a missing test) and checks
+that following the skill's review step actually surfaces both problems
+(`graders/check-catches-issues.sh`).
+
+Run it with:
+
+```
+skillgrade --provider=docker --agent=claude   # sandboxed, needs ANTHROPIC_API_KEY
+```
+
+or, to reuse an already-authenticated local `claude` CLI instead of a raw
+API key (runs unsandboxed on the host — only do this if you trust the
+fixtures, which by default only run `git`/`golangci-lint`/`go`):
+
+```
+skillgrade --provider=local --agent=command --command="claude -p --permission-mode bypassPermissions"
+```
+
+`skillgrade preview` (or `skillgrade preview browser`) shows the results
+after a run.

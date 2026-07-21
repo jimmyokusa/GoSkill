@@ -21,9 +21,20 @@ subagent to enforce it.
   reports findings only — it never edits code — so review stays a separate
   pass from implementation.
 
+- **`eval.yaml`** / **`fixtures/`** / **`graders/`** — a
+  [skillgrade](https://github.com/mgechev/skillgrade) eval that verifies an
+  agent given this skill actually follows the review step correctly against
+  a fixture with a known lint violation and a known test-coverage gap. See
+  "Testing the skill itself" in `SKILL.md`.
+
 ## Usage
 
 Copy `.golangci.yml` and `.claude/agents/go-reviewer.md` into the target
 repo's root and `.claude/agents/` respectively. Follow the development loop
 in `SKILL.md`: branch per change, implement with tests, lint, invoke
 `go-reviewer` against the branch diff, merge on approval, push.
+
+## Testing
+
+`skillgrade --provider=docker --agent=claude` (or see `SKILL.md` for a
+local-provider alternative). Requires `npm i -g skillgrade`.
