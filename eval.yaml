@@ -2,23 +2,30 @@ version: "1"
 skill: .
 
 defaults:
-  agent: claude
+  # agent: command (not the built-in `claude` agent type) so we can pin the
+  # model explicitly — the `claude` agent type hardcodes `claude -p
+  # --dangerously-skip-permissions` with no --model flag, which would run
+  # whatever the CLI's default model is instead of the Sonnet 5 intro pricing
+  # we want to spend API credit on.
+  agent: command
+  command: "claude -p --dangerously-skip-permissions --model claude-sonnet-5"
   provider: docker
   trials: 5
   timeout: 600
   docker:
     base: node:20-bookworm
-    # skillgrade always runs `claude --dangerously-skip-permissions` inside the
-    # container, which refuses to run as root — so we drop to the `node` user
-    # (built into the node:20 base image) at the end of setup. `chown`/`USER`
-    # are on their own trailing lines (not chained with `&&`) so tweaking them
-    # doesn't bust the cache for the slow Go/golangci-lint install above: this
-    # string becomes multiple Dockerfile lines, only the first of which gets
-    # skillgrade's automatic `RUN ` prefix — subsequent lines are raw
-    # Dockerfile instructions, which is how the bare `USER node` becomes a
-    # real USER directive instead of shell text.
+    # `agent: command` doesn't auto-install claude-code the way `agent: claude`
+    # does, so we install it ourselves here (node/npm already present in the
+    # base image). Same non-root fix as before: `claude --dangerously-skip-
+    # permissions` refuses to run as root, so we drop to the `node` user at
+    # the end of setup. `chown`/`USER` are on their own trailing lines (not
+    # chained with `&&`) so tweaking them doesn't bust the cache for the slow
+    # Go/golangci-lint install above: this string becomes multiple Dockerfile
+    # lines, only the first of which gets skillgrade's automatic `RUN `
+    # prefix — subsequent lines are raw Dockerfile instructions, which is how
+    # the bare `USER node` becomes a real USER directive instead of shell text.
     setup: |
-      apt-get update && apt-get install -y git curl && GOVER=$(curl -fsSL https://go.dev/VERSION?m=text | head -1) && ARCH=$(dpkg --print-architecture) && curl -fsSL "https://go.dev/dl/${GOVER}.linux-${ARCH}.tar.gz" -o /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz && ln -s /usr/local/go/bin/go /usr/local/bin/go && ln -s /usr/local/go/bin/gofmt /usr/local/bin/gofmt && GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+      npm install -g @anthropic-ai/claude-code && apt-get update && apt-get install -y git curl && GOVER=$(curl -fsSL https://go.dev/VERSION?m=text | head -1) && ARCH=$(dpkg --print-architecture) && curl -fsSL "https://go.dev/dl/${GOVER}.linux-${ARCH}.tar.gz" -o /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz && ln -s /usr/local/go/bin/go /usr/local/bin/go && ln -s /usr/local/go/bin/gofmt /usr/local/bin/gofmt && GOBIN=/usr/local/bin /usr/local/go/bin/go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
       RUN chown node:node /workspace
       USER node
 
